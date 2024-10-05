@@ -69,10 +69,10 @@ public:
 		return accum > 0 ? accum : -accum;
 	}
 
-	__device__ marble_texture(vec3* r, int* x, int* y, int* z, float s) : ranvec(r), perm_x(x), perm_y(y), perm_z(z), scale(s) {}
+	__device__ marble_texture(vec3* r, int* x, int* y, int* z, float s, vec3 c) : ranvec(r), perm_x(x), perm_y(y), perm_z(z), scale(s), albedo(c) {}
 
 	__device__ virtual vec3 value(float u, float v, const vec3& p) const {
-		vec3 retVal = vec3(1, 1, 1)*0.5 * (1 + sin(scale * p.z() + 10 * turb(p)));;
+		vec3 retVal = albedo*0.5 * (1 + sin(scale * p.z() + 10 * turb(p)));;
 		return retVal;
 	}
 
@@ -82,6 +82,7 @@ public:
 	int* perm_x;
 	int* perm_y;
 	int* perm_z;
+	color albedo;
 };
 
 class image_texture : public _texture {

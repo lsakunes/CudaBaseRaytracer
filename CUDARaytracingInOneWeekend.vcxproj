@@ -93,6 +93,7 @@
     <ClInclude Include="sphere.hpp" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="texture.hpp" />
+    <ClInclude Include="triangle.hpp" />
     <ClInclude Include="vec3.hpp" />
   </ItemGroup>
   <ItemGroup>

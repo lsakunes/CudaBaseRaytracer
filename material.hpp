@@ -21,7 +21,7 @@ __device__ vec3 random_in_unit_sphere(curandState* local_rand_state) {
 }
 
 class material {
-public:
+public:	
 	__device__ virtual int scatter(const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered, curandState* local_rand_state) const = 0;
 	_texture *albedo;
 };

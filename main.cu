@@ -15,6 +15,7 @@
 #include "ray.hpp"
 #include "hitable_list.hpp"
 #include "sphere.hpp"
+#include "triangle.hpp"
 #include "sphere.hpp"
 #include "camera.hpp"
 #include "material.hpp"
@@ -53,10 +54,10 @@ void bar(int j,int ny){;;;;;;;;;;
 };;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 __device__ color ray_color(const ray& r, hitable **world, curandState* local_rand_state) {
-	vec3 bgColor(0.9, 0.9, 1);
+	vec3 bgColor(0.5, 0.5, 0.6);
 	ray cur_ray = r;
 	vec3 cur_attenuation = vec3(1.0, 1.0, 1.0);
-	for (int i = 0; i < 50; i++) {
+	for (int i = 0; i < 5; i++) {
 		hit_record rec;
 		int result = (*world)->hit(cur_ray, 0.001f, MAXFLOAT, rec);
 		if (result == 1) {
@@ -73,7 +74,7 @@ __device__ color ray_color(const ray& r, hitable **world, curandState* local_ran
 		else {
 			vec3 unit_direction = unit_vector(cur_ray.direction());
 			float t = 0.5f * (unit_direction.y() + 1.0f);
-			vec3 c = (1.0f - t) * vec3(1.0, 1.0, 1.0) + t * bgColor;
+			vec3 c = (1.0f - t) * vec3(0.1, 0.1, 0.1) + t * bgColor;
 			return cur_attenuation * c;
 		}
 	}
@@ -114,15 +115,15 @@ __global__ void create_world(hitable** d_list, hitable** d_world, camera** d_cam
 
 		//BASE
 		d_list[0] = new sphere(vec3(0, -100, -1), 100,
-			new lambertian(new marble_texture(ranvec, perm_x, perm_y, perm_z, 30)));
+			new lambertian(new marble_texture(ranvec, perm_x, perm_y, perm_z, 30, vec3(1,1,1))));
 		//d_list[1] = new sphere(vec3(0, -100, -1), 100, 
 		//	new lambertian(new checker_texture(vec3(1, 0.2, 0.2), vec3(0.2, 0.2, 1))));
 
 		d_list[1] = new sphere(vec3(0, 0.5, -1), 0.5,
-			new metal(new image_texture(tex_data, texnx, texny), 0.5f));
+			new metal(new image_texture(tex_data, texnx, texny), 0));
 		d_list[2] = new sphere(vec3(1, 0.22, -1), 0.25,
-			new Emit(new constant_texture(vec3(5, 5, 15))));
-		d_list[3] = new sphere(vec3(-1, 0.3, -1), vec3(-1, 0.1, -1), 0.1,
+			new Emit(new marble_texture(ranvec, perm_x, perm_y, perm_z, 30, vec3(5,9,10))));
+		d_list[3] = new triangle(vec3(-1, 0.3, -1), vec3(0, 0.5, -1), vec3(-0.5, 1, -1),
 			new lambertian(new constant_texture(vec3(0.3, 0.9, 0.4))));
 		d_list[4] = new sphere(vec3(-2, 0.4, -1), 0.4,
 			new dielectric(1.5));
@@ -235,14 +236,14 @@ int main() {
 	}
 
 	checkCudaErrors(cudaDeviceSynchronize());
-	free_world << <1, 1 >> > (d_list, d_world, d_cam, numSpheres, ranvec, perm_x, perm_y, perm_z, d_tex_data);
+	free_world << <1, 1>> > (d_list, d_world, d_cam, numSpheres, ranvec, perm_x, perm_y, perm_z, d_tex_data);
 	checkCudaErrors(cudaGetLastError());
+	checkCudaErrors(cudaFree(d_tex_data));
 	checkCudaErrors(cudaFree(d_cam));
 	checkCudaErrors(cudaFree(d_world));
 	checkCudaErrors(cudaFree(d_list));
 	checkCudaErrors(cudaFree(d_rand_state));
 	checkCudaErrors(cudaFree(fb));
-	checkCudaErrors(cudaFree(d_tex_data));
 
 	cudaDeviceReset();
 }
