@@ -36,7 +36,7 @@ public:
 // P = ray.orig + rec.t*ray.dir = p1 + u(p2 - p1) + v(p3-p1);
 // ray.orig - p1 = -rec.t*ray.dir + u(p2 - p1) + v(p3-p1);
 // investigate further later
-__device__ bool get_triangle_uv(ray r, vec3 p1, vec3 p2, vec3 p3, float& u, float& v, float& t) {
+__device__ bool get_triangle_uv(ray r, vec3 p1, vec3 p2, vec3 p3, float t_min, float t_max, float& u, float& v, float& t) {
 	vec3 A = p2 - p1;
 	vec3 B = p3 - p1;
 
@@ -61,14 +61,14 @@ __device__ bool get_triangle_uv(ray r, vec3 p1, vec3 p2, vec3 p3, float& u, floa
 		return false;
 
 	t = inv_det * dot(B, s_cross_A);
-	if (t > EPSILON)
+	if (t > t_min && t < t_max)
 		return true;
 	else
 		return false;
 }
 
 __device__ bool triangle::hit(const ray& r, float t_min, float t_max, hit_record& rec) const {
-	if (!get_triangle_uv(r, point1, point2, point3, rec.u, rec.v, rec.t)) return false;
+	if (!get_triangle_uv(r, point1, point2, point3, t_min, t_max, rec.u, rec.v, rec.t)) return false;
 	rec.p = r.at(rec.t);
 	rec.normal = normal;
 	rec.mat_ptr = mat_ptr;

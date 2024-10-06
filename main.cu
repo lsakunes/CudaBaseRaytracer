@@ -55,7 +55,7 @@ void bar(int j,int ny){;;;;;;;;;;
 };;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 __device__ color ray_color(const ray& r, hitable **world, curandState* local_rand_state) {
-	vec3 bgColor(0.9, 0.9, 1);
+	vec3 bgColor(0.05, 0.05, 0.1);
 	ray cur_ray = r;
 	vec3 cur_attenuation = vec3(1.0, 1.0, 1.0);
 	vec3 emitted = vec3(0, 0, 0);
@@ -123,11 +123,11 @@ __global__ void create_world(hitable** d_list, hitable** d_world, camera** d_cam
 
 		d_list[1] = new sphere(vec3(0, 0.5, -1), 0.5,
 			new lambertian(new image_texture(tex_data, texnx, texny)));
-		d_list[2] = new sphere(vec3(1, 0.22, -1), 0.25,
+		d_list[2] = new sphere(vec3(1, 0.22, 0.3), 0.25,
 			new Emit(new constant_texture(vec3(3, 2, 4))));
-		d_list[3] = new triangle(vec3(-1, 0.5, -2), vec3(0.5, 0.5, -1.5), vec3(0, 2, -1.2), 
-			new metal(new constant_texture(vec3(1, 0.8, 0.9)), 0.3));
-		d_list[4] = new sphere(vec3(-2, 0.4, -1), 0.4,
+		d_list[3] = new triangle(vec3(0, 0, -3), vec3(2, 0, -2.8), vec3(0.5, 1.5, -2.7), 
+			new metal(new constant_texture(vec3(1, 0.8, 0.9)), 0.5));
+		d_list[4] = new sphere(vec3(-1, 0.4, 0), 0.4,
 			new dielectric(1.5));
 		*d_world = new hitable_list(d_list, numSpheres);
 		float R = cos(PI / 4);
@@ -162,7 +162,7 @@ int main() {
 	int nx = 1200;
 	int ny = 600;
 	float idealSquareSize = 512;
-	int samples = 50;
+	int samples = 500;
 
 	int tx = ceil(nx / idealSquareSize);
 	int ty = ceil(ny / idealSquareSize);
