@@ -24,7 +24,7 @@
 #define checkCudaErrors(val) check_cuda((val), #val, __FILE__, __LINE__)
 
 __device__ float MAXFLOAT = 999;
-__device__ int MAX_BOUNCES = 20;
+__device__ int MAX_BOUNCES = 5;
 
 
 
@@ -99,6 +99,7 @@ __global__ void render(color* fb, int max_x, int max_y, int samples, camera **d_
 	curandState local_rand_state = rand_state[pixel_index];
 	vec3 col(0, 0, 0);
 	for (int s = 0; s < samples; s++) {
+		if (pixel_index == 50000) printf("sample: %d\n", s);
 		auto u = double(i + curand_uniform(&local_rand_state)) / (max_x - 1);
 		auto v = double(j + curand_uniform(&local_rand_state)) / (max_y - 1);
 		ray r = (*d_cam)->get_ray(u, v, &local_rand_state);
@@ -122,12 +123,12 @@ __global__ void create_world(hitable** d_list, hitable** d_world, camera** d_cam
 		//	new lambertian(new checker_texture(vec3(1, 0.2, 0.2), vec3(0.2, 0.2, 1))));
 
 		d_list[1] = new sphere(vec3(0, 0.5, -1), 0.5,
-			new lambertian(new image_texture(tex_data, texnx, texny)));
-		d_list[2] = new sphere(vec3(1, 0.22, 0.3), 0.25,
-			new Emit(new constant_texture(vec3(3, 2, 4))));
+			new metal(new image_texture(tex_data, texnx, texny), 0.9));
+		d_list[2] = new sphere(vec3(1, 0.8, 0.3), 0.8,
+			new Emit(new constant_texture(vec3(1, 4, 3))));
 		d_list[3] = new triangle(vec3(0, 0, -3), vec3(2, 0, -2.8), vec3(0.5, 1.5, -2.7), 
 			new metal(new constant_texture(vec3(1, 0.8, 0.9)), 0.5));
-		d_list[4] = new sphere(vec3(-1, 0.4, 0), 0.4,
+		d_list[4] = new sphere(vec3(-0.25, 0.3, -0.5), 0.3,
 			new dielectric(1.5));
 		*d_world = new hitable_list(d_list, numSpheres);
 		float R = cos(PI / 4);
@@ -159,10 +160,10 @@ int main() {
 	cudaDeviceSetLimit(cudaLimitStackSize, 8192);
 	// hmmmmmmmm
 
-	int nx = 1200;
-	int ny = 600;
+	int nx = 512*2;
+	int ny = 512;
 	float idealSquareSize = 512;
-	int samples = 500;
+	int samples = 50;
 
 	int tx = ceil(nx / idealSquareSize);
 	int ty = ceil(ny / idealSquareSize);
