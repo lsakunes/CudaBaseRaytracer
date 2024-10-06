@@ -24,6 +24,7 @@
 #define checkCudaErrors(val) check_cuda((val), #val, __FILE__, __LINE__)
 
 __device__ float MAXFLOAT = 999;
+__device__ int MAX_BOUNCES = 20;
 
 
 
@@ -54,31 +55,32 @@ void bar(int j,int ny){;;;;;;;;;;
 };;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 __device__ color ray_color(const ray& r, hitable **world, curandState* local_rand_state) {
-	vec3 bgColor(0.5, 0.5, 0.6);
+	vec3 bgColor(0.9, 0.9, 1);
 	ray cur_ray = r;
 	vec3 cur_attenuation = vec3(1.0, 1.0, 1.0);
-	for (int i = 0; i < 5; i++) {
+	vec3 emitted = vec3(0, 0, 0);
+	for (int i = 0; i < MAX_BOUNCES; i++) {
 		hit_record rec;
-		int result = (*world)->hit(cur_ray, 0.001f, MAXFLOAT, rec);
-		if (result == 1) {
+		if ((*world)->hit(cur_ray, 0.001f, MAXFLOAT, rec)) {
 			ray scattered;
 			vec3 attenuation;
+			vec3 curemitted = rec.mat_ptr->emitted(rec.u, rec.v, rec.p) * cur_attenuation;
+			emitted += curemitted;
 			if (rec.mat_ptr->scatter(cur_ray, rec, attenuation, scattered, local_rand_state)) {
 				cur_attenuation *= attenuation;
 				cur_ray = scattered;
 			}
-		}
-		else if (result == 2) {
-			return rec.mat_ptr->albedo->value(rec.u,rec.v,rec.p);
+			else
+				return emitted;
 		}
 		else {
 			vec3 unit_direction = unit_vector(cur_ray.direction());
 			float t = 0.5f * (unit_direction.y() + 1.0f);
 			vec3 c = (1.0f - t) * vec3(0.1, 0.1, 0.1) + t * bgColor;
-			return cur_attenuation * c;
+			return cur_attenuation * c + emitted;
 		}
 	}
-	return vec3(0.0, 0.0, 0.0);
+	return vec3(0,0,0);
 }
 
 __global__ void render_init(int max_x, int max_y, curandState* rand_state, int seed) {
@@ -116,15 +118,15 @@ __global__ void create_world(hitable** d_list, hitable** d_world, camera** d_cam
 		//BASE
 		d_list[0] = new sphere(vec3(0, -100, -1), 100,
 			new lambertian(new marble_texture(ranvec, perm_x, perm_y, perm_z, 30, vec3(1,1,1))));
-		//d_list[1] = new sphere(vec3(0, -100, -1), 100, 
+		//d_list[1] = new sphere(vec3(0, 0.5, -1), 0.5, 
 		//	new lambertian(new checker_texture(vec3(1, 0.2, 0.2), vec3(0.2, 0.2, 1))));
 
 		d_list[1] = new sphere(vec3(0, 0.5, -1), 0.5,
-			new metal(new image_texture(tex_data, texnx, texny), 0));
+			new lambertian(new image_texture(tex_data, texnx, texny)));
 		d_list[2] = new sphere(vec3(1, 0.22, -1), 0.25,
-			new Emit(new marble_texture(ranvec, perm_x, perm_y, perm_z, 30, vec3(5,9,10))));
-		d_list[3] = new triangle(vec3(-1, 0.3, -1), vec3(0, 0.5, -1), vec3(-0.5, 1, -1),
-			new lambertian(new constant_texture(vec3(0.3, 0.9, 0.4))));
+			new Emit(new constant_texture(vec3(3, 2, 4))));
+		d_list[3] = new triangle(vec3(-1, 0.5, -2), vec3(0.5, 0.5, -1.5), vec3(0, 2, -1.2), 
+			new metal(new constant_texture(vec3(1, 0.8, 0.9)), 0.3));
 		d_list[4] = new sphere(vec3(-2, 0.4, -1), 0.4,
 			new dielectric(1.5));
 		*d_world = new hitable_list(d_list, numSpheres);
@@ -140,7 +142,7 @@ __global__ void create_world(hitable** d_list, hitable** d_world, camera** d_cam
 
 __global__ void free_world(hitable** d_list, hitable** d_world, camera** d_cam, int numSpheres, vec3* ranvec, int* perm_x, int* perm_y, int* perm_z, unsigned char* tex_data) {
 	for (int i = 0; i < numSpheres; i++) {
-		delete ((sphere*)d_list[i])->mat_ptr;
+		delete (d_list[i])->mat_ptr;
 		delete d_list[i];
 	}
 	delete ranvec;
@@ -153,16 +155,17 @@ __global__ void free_world(hitable** d_list, hitable** d_world, camera** d_cam, 
 }
 
 int main() {
-	//hmmmm
-	cudaDeviceSetLimit(cudaLimitStackSize, 4096);
-	//hmmmmmmmm
+	// hmmmm
+	cudaDeviceSetLimit(cudaLimitStackSize, 8192);
+	// hmmmmmmmm
 
 	int nx = 1200;
 	int ny = 600;
-	int samples = 500;
+	float idealSquareSize = 512;
+	int samples = 50;
 
-	int tx = 8;
-	int ty = 8;
+	int tx = ceil(nx / idealSquareSize);
+	int ty = ceil(ny / idealSquareSize);
 
 	std::cerr << "Rendering a " << nx << "x" << ny << " image ";
 	std::cerr << "in " << tx << "x" << ty << " blocks.\n";

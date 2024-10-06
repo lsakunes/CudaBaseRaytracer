@@ -80,6 +80,7 @@
     <CudaCompile Include="main.cu" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="aabb.hpp" />
     <ClInclude Include="bvh.hpp" />
     <ClInclude Include="camera.hpp" />
     <ClInclude Include="color.hpp" />
@@ -95,9 +96,6 @@
     <ClInclude Include="texture.hpp" />
     <ClInclude Include="triangle.hpp" />
     <ClInclude Include="vec3.hpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="aabb.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

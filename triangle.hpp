@@ -41,9 +41,9 @@ __device__ bool get_triangle_uv(ray r, vec3 p1, vec3 p2, vec3 p3, float& u, floa
 	vec3 B = p3 - p1;
 
 	//yeah
-	vec3 ray_cross_B = cross(r.at(1), B);
+	vec3 ray_cross_B = cross(r.dir, B);
 	float det = dot(A, ray_cross_B);
-	if (det > -EPSILON || det < EPSILON) 
+	if (det > -EPSILON && det < EPSILON) 
 		return false;
 
 	//hm
@@ -55,7 +55,7 @@ __device__ bool get_triangle_uv(ray r, vec3 p1, vec3 p2, vec3 p3, float& u, floa
 
 	//?
 	vec3 s_cross_A = cross(s, A);
-	v = inv_det * dot(r.at(1), s_cross_A);
+	v = inv_det * dot(r.dir, s_cross_A);
 
 	if (v < 0 || u + v > 1)
 		return false;
@@ -68,7 +68,7 @@ __device__ bool get_triangle_uv(ray r, vec3 p1, vec3 p2, vec3 p3, float& u, floa
 }
 
 __device__ bool triangle::hit(const ray& r, float t_min, float t_max, hit_record& rec) const {
-	get_triangle_uv(r, point1, point2, point3, rec.u, rec.v, rec.t);
+	if (!get_triangle_uv(r, point1, point2, point3, rec.u, rec.v, rec.t)) return false;
 	rec.p = r.at(rec.t);
 	rec.normal = normal;
 	rec.mat_ptr = mat_ptr;

@@ -35,7 +35,7 @@ __device__ bool hitable_list::bounding_box(float t0, float t1, aabb& box) const 
 		return false;
 	else box = temp_box;
 	for (int i = 1; i < list_size; i++) {
-		if (list[i]->bounding_box(t0, t1, temp_box)) { //?? 0 or i
+		if (list[i]->bounding_box(t0, t1, temp_box)) { //?? 0 or i   // def i
 			box = surrounding_box(box, temp_box);
 		}
 		else return false;
